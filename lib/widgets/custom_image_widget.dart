@@ -8,7 +8,7 @@ extension ImageTypeExtension on String {
       return ImageType.network;
     } else if (endsWith('.svg')) {
       return ImageType.svg;
-    } else if (startsWith('file://') || startsWith('/')) { // Fixed: detects actual local device paths
+    } else if (startsWith('file://') || startsWith('/')) { // FIXED HERE
       return ImageType.file;
     } else {
       return ImageType.png;

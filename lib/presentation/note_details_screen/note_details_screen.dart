@@ -13,7 +13,6 @@ class NoteDetailsScreen extends StatefulWidget {
 
 class _NoteDetailsScreenState extends State<NoteDetailsScreen>
     with SingleTickerProviderStateMixin {
-  // TODO: Replace with Riverpod/Bloc for production
   Note? _note;
   late AnimationController _sheetCtrl;
   late Animation<Offset> _slideAnim;
@@ -111,12 +110,12 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
   }
 
   static const List<Color> _planColors = [
-    Color(0xFF7C5CBF), // purple
-    Color(0xFFF5C842), // yellow
-    Color(0xFFE91E8C), // pink
-    Color(0xFF4FC3F7), // blue
-    Color(0xFFF5A623), // orange
-    Color(0xFF2D7A4F), // green
+    Color(0xFF7C5CBF), 
+    Color(0xFFF5C842), 
+    Color(0xFFE91E8C), 
+    Color(0xFF4FC3F7), 
+    Color(0xFFF5A623), 
+    Color(0xFF2D7A4F), 
   ];
 
   @override
@@ -173,7 +172,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
           ),
           child: Column(
             children: [
-              // Drag handle
               Padding(
                 padding: const EdgeInsets.only(top: 12, bottom: 4),
                 child: Center(
@@ -187,7 +185,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                   ),
                 ),
               ),
-              // Header row — ANATOMY LOCKED: X close + edit pencil
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Row(
@@ -228,19 +225,16 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                   ],
                 ),
               ),
-              // Scrollable content
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Time pill badge — ANATOMY LOCKED
                       TimePillBadgeWidget(
                         timeText: _formatDateTime(note.createdAt),
                       ),
                       const SizedBox(height: 16),
-                      // Title — large bold centered
                       Text(
                         note.title.isEmpty ? 'Untitled Note' : note.title,
                         style: theme.textTheme.headlineMedium?.copyWith(
@@ -251,7 +245,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      // Description/content — centered muted
                       if (note.content.isNotEmpty) ...[
                         Text(
                           note.content,
@@ -263,7 +256,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                         ),
                         const SizedBox(height: 20),
                       ],
-                      // Image if present
                       if (note.imagePath != null) ...[
                         Align(
                           alignment: Alignment.centerLeft,
@@ -278,8 +270,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: CustomImageWidget(
-                            // Fixed: passing imagePath directly to allow local paths to work
-                            imageUrl: note.imagePath,
+                            imageUrl: note.imagePath, // FIXED HERE
                             width: double.infinity,
                             height: 180,
                             fit: BoxFit.cover,
@@ -289,7 +280,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                         ),
                         const SizedBox(height: 24),
                       ],
-                      // Plan / Checklist section — ANATOMY LOCKED
                       if (note.checklistItems.isNotEmpty) ...[
                         Align(
                           alignment: Alignment.centerLeft,
@@ -314,7 +304,6 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                           );
                         }),
                       ],
-                      // Date footer
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -370,12 +359,10 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // Dimmed background — tap to close
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(color: Colors.black.withAlpha(64)),
           ),
-          // Bottom sheet panel
           Align(
             alignment: Alignment.bottomCenter,
             child: SizedBox(

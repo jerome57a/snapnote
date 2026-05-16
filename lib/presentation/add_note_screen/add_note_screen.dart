@@ -1,7 +1,9 @@
-
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/app_export.dart';
 import '../../database/database_helper.dart';
@@ -19,7 +21,6 @@ class AddNoteScreen extends StatefulWidget {
 
 class _AddNoteScreenState extends State<AddNoteScreen>
     with SingleTickerProviderStateMixin {
-  // TODO: Replace with Riverpod/Bloc for production
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
@@ -61,8 +62,14 @@ class _AddNoteScreenState extends State<AddNoteScreen>
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: source, imageQuality: 80);
+      
       if (picked != null && mounted) {
-        setState(() => _imagePath = picked.path);
+        // --- CRITICAL FIX: Save to persistent storage ---
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = p.basename(picked.path);
+        final savedImage = await File(picked.path).copy('${appDir.path}/$fileName');
+        
+        setState(() => _imagePath = savedImage.path);
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -297,20 +304,17 @@ class _AddNoteScreenState extends State<AddNoteScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title & Content form
             AddNoteFormWidget(
               titleController: _titleCtrl,
               contentController: _contentCtrl,
             ),
             const SizedBox(height: 24),
-            // Image attachment
             ImageAttachmentWidget(
               imagePath: _imagePath,
               onAddImage: _showImageSourceSheet,
               onRemoveImage: () => setState(() => _imagePath = null),
             ),
             const SizedBox(height: 24),
-            // Checklist section
             ChecklistSectionWidget(
               items: _checklistItems,
               onAddItem: _addChecklistItem,
@@ -318,7 +322,6 @@ class _AddNoteScreenState extends State<AddNoteScreen>
               onUpdateItem: _updateChecklistItem,
             ),
             const SizedBox(height: 32),
-            // Save button
             SizedBox(
               width: double.infinity,
               height: 54,

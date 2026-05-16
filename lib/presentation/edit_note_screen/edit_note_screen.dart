@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/app_export.dart';
 import '../../database/database_helper.dart';
 import '../../models/note.dart';
-import '../add_note_screen/widgets/image_attachment_widget.dart'; // Added import for the image widget
+import '../add_note_screen/widgets/image_attachment_widget.dart'; 
 
 class EditNoteScreen extends StatefulWidget {
   const EditNoteScreen({super.key});
@@ -22,7 +25,7 @@ class _EditNoteScreenState extends State<EditNoteScreen>
   bool _isImportant = false;
   bool _isSaving = false;
   bool _isInitialized = false;
-  String? _imagePath; // Added image path state
+  String? _imagePath; 
   Note? _originalNote;
   final List<ChecklistItem> _checklistItems = [];
   late AnimationController _enterCtrl;
@@ -58,7 +61,7 @@ class _EditNoteScreenState extends State<EditNoteScreen>
         _titleCtrl.text = args.title;
         _contentCtrl.text = args.content;
         _isImportant = args.isImportant;
-        _imagePath = args.imagePath; // Initialize image path from the existing note
+        _imagePath = args.imagePath; 
         _checklistItems.addAll(
           args.checklistItems.map((item) => item.copyWith()),
         );
@@ -74,13 +77,18 @@ class _EditNoteScreenState extends State<EditNoteScreen>
     super.dispose();
   }
 
-  // Added Image Picking logic
   Future<void> _pickImage(ImageSource source) async {
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: source, imageQuality: 80);
+      
       if (picked != null && mounted) {
-        setState(() => _imagePath = picked.path);
+        // --- CRITICAL FIX: Save to persistent storage ---
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = p.basename(picked.path);
+        final savedImage = await File(picked.path).copy('${appDir.path}/$fileName');
+        
+        setState(() => _imagePath = savedImage.path);
       }
     } catch (e) {
       Fluttertoast.showToast(
@@ -91,7 +99,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
     }
   }
 
-  // Added Image sheet launcher
   void _showImageSourceSheet() {
     showModalBottomSheet(
       context: context,
@@ -172,9 +179,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
     if (_originalNote == null) return;
     setState(() => _isSaving = true);
 
-    // FIXED: Instead of _originalNote!.copyWith(), we instantiate directly. 
-    // If _imagePath is null (user deleted it), we want it to literally save as null.
-    // copyWith() would fallback to the old image if we passed null.
     final updatedNote = Note(
       id: _originalNote!.id,
       title: _titleCtrl.text.trim(),
@@ -329,7 +333,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title field
             TextFormField(
               controller: _titleCtrl,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -350,7 +353,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
             ),
             Divider(color: Colors.grey[200], height: 1),
             const SizedBox(height: 12),
-            // Content field
             TextFormField(
               controller: _contentCtrl,
               style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
@@ -369,7 +371,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
             ),
             const SizedBox(height: 24),
             
-            // ADDED: Image attachment UI for editing/removing photos
             ImageAttachmentWidget(
               imagePath: _imagePath,
               onAddImage: _showImageSourceSheet,
@@ -377,7 +378,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
             ),
             const SizedBox(height: 24),
 
-            // Checklist section
             Row(
               children: [
                 Text(
@@ -508,7 +508,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
                 );
               }),
             const SizedBox(height: 32),
-            // Save button
             SizedBox(
               width: double.infinity,
               height: 54,
@@ -558,7 +557,6 @@ class _EditNoteScreenState extends State<EditNoteScreen>
   }
 }
 
-// Added the helper widget required for the Bottom Sheet to work
 class _SheetOption extends StatelessWidget {
   final IconData icon;
   final String label;
