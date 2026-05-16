@@ -278,9 +278,8 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: CustomImageWidget(
-                            imageUrl: note.imagePath!.startsWith('http')
-                                ? note.imagePath
-                                : null,
+                            // Fixed: passing imagePath directly to allow local paths to work
+                            imageUrl: note.imagePath,
                             width: double.infinity,
                             height: 180,
                             fit: BoxFit.cover,
