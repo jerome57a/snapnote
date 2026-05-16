@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/app_export.dart';
 import '../../database/database_helper.dart';
 import '../../models/note.dart';
+import '../add_note_screen/widgets/image_attachment_widget.dart'; // Added import for the image widget
 
 class EditNoteScreen extends StatefulWidget {
   const EditNoteScreen({super.key});
@@ -19,6 +22,7 @@ class _EditNoteScreenState extends State<EditNoteScreen>
   bool _isImportant = false;
   bool _isSaving = false;
   bool _isInitialized = false;
+  String? _imagePath; // Added image path state
   Note? _originalNote;
   final List<ChecklistItem> _checklistItems = [];
   late AnimationController _enterCtrl;
@@ -54,6 +58,7 @@ class _EditNoteScreenState extends State<EditNoteScreen>
         _titleCtrl.text = args.title;
         _contentCtrl.text = args.content;
         _isImportant = args.isImportant;
+        _imagePath = args.imagePath; // Initialize image path from the existing note
         _checklistItems.addAll(
           args.checklistItems.map((item) => item.copyWith()),
         );
@@ -67,6 +72,77 @@ class _EditNoteScreenState extends State<EditNoteScreen>
     _contentCtrl.dispose();
     _enterCtrl.dispose();
     super.dispose();
+  }
+
+  // Added Image Picking logic
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      if (picked != null && mounted) {
+        setState(() => _imagePath = picked.path);
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Couldn't access photos. Check app permissions.",
+        backgroundColor: AppTheme.error,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  // Added Image sheet launcher
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Add Photo',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              if (!kIsWeb)
+                _SheetOption(
+                  icon: Icons.photo_camera_rounded,
+                  label: 'Take Photo',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+              const SizedBox(height: 8),
+              _SheetOption(
+                icon: Icons.photo_library_rounded,
+                label: 'Choose from Library',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _addChecklistItem() {
@@ -96,10 +172,16 @@ class _EditNoteScreenState extends State<EditNoteScreen>
     if (_originalNote == null) return;
     setState(() => _isSaving = true);
 
-    final updatedNote = _originalNote!.copyWith(
+    // FIXED: Instead of _originalNote!.copyWith(), we instantiate directly. 
+    // If _imagePath is null (user deleted it), we want it to literally save as null.
+    // copyWith() would fallback to the old image if we passed null.
+    final updatedNote = Note(
+      id: _originalNote!.id,
       title: _titleCtrl.text.trim(),
       content: _contentCtrl.text.trim(),
+      imagePath: _imagePath,
       isImportant: _isImportant,
+      createdAt: _originalNote!.createdAt,
       checklistItems: _checklistItems
           .where((c) => c.taskText.isNotEmpty)
           .toList(),
@@ -286,6 +368,15 @@ class _EditNoteScreenState extends State<EditNoteScreen>
               textCapitalization: TextCapitalization.sentences,
             ),
             const SizedBox(height: 24),
+            
+            // ADDED: Image attachment UI for editing/removing photos
+            ImageAttachmentWidget(
+              imagePath: _imagePath,
+              onAddImage: _showImageSourceSheet,
+              onRemoveImage: () => setState(() => _imagePath = null),
+            ),
+            const SizedBox(height: 24),
+
             // Checklist section
             Row(
               children: [
@@ -458,6 +549,47 @@ class _EditNoteScreenState extends State<EditNoteScreen>
                           ),
                         ),
                       ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Added the helper widget required for the Bottom Sheet to work
+class _SheetOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _SheetOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariantLight,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppTheme.primary, size: 22),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
