@@ -13,21 +13,21 @@ void main() async {
     if (!hasShownError) {
       hasShownError = true;
 
-      // Reset flag after 3 seconds to allow error widget on new screens
-      Future.delayed(Duration(seconds: 5), () {
+      // Reset flag after 5 seconds to allow error widget on new screens
+      Future.delayed(const Duration(seconds: 5), () {
         hasShownError = false;
       });
 
       return CustomErrorWidget(errorDetails: details);
     }
-    return SizedBox.shrink();
+    return const SizedBox.shrink();
   };
 
   // 🚨 CRITICAL: Device orientation lock - DO NOT REMOVE
   Future.wait([
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
   ]).then((value) {
-    runApp(MyApp());
+    runApp(const MyApp());
   });
 }
 
@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
             return MediaQuery(
               data: MediaQuery.of(
                 context,
-              ).copyWith(textScaler: TextScaler.linear(1.0)),
+              ).copyWith(textScaler: const TextScaler.linear(1.0)),
               child: child!,
             );
           },

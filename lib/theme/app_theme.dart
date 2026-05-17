@@ -1,6 +1,3 @@
-// THEME LOCK: light — source: domain signal (consumer productivity app)
-// Scaffold.backgroundColor = AppTheme.backgroundLight — ALL screens
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -36,7 +33,7 @@ class AppTheme {
 
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: primary,
       onPrimary: Colors.white,
       primaryContainer: primaryContainer,
@@ -53,70 +50,82 @@ class AppTheme {
       outlineVariant: Color(0xFFEAE8F5),
     ),
     scaffoldBackgroundColor: backgroundLight,
-    textTheme: GoogleFonts.plusJakartaSansTextTheme().copyWith(
-      displayLarge: GoogleFonts.plusJakartaSans(
+    textTheme: const TextTheme(
+      displayLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: Color(0xFF1A1A2E),
       ),
-      headlineLarge: GoogleFonts.plusJakartaSans(
+      headlineLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: Color(0xFF1A1A2E),
       ),
-      headlineMedium: GoogleFonts.plusJakartaSans(
+      headlineMedium: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 22,
         fontWeight: FontWeight.w700,
         color: Color(0xFF1A1A2E),
       ),
-      titleLarge: GoogleFonts.plusJakartaSans(
+      titleLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: Color(0xFF1A1A2E),
       ),
-      titleMedium: GoogleFonts.plusJakartaSans(
+      titleMedium: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: Color(0xFF1A1A2E),
       ),
-      titleSmall: GoogleFonts.plusJakartaSans(
+      titleSmall: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: Color(0xFF1A1A2E),
       ),
-      bodyLarge: GoogleFonts.plusJakartaSans(
+      bodyLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: Color(0xFF1A1A2E),
       ),
-      bodyMedium: GoogleFonts.plusJakartaSans(
+      bodyMedium: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: Color(0xFF4A4A6A),
       ),
-      bodySmall: GoogleFonts.plusJakartaSans(
+      bodySmall: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 11,
         fontWeight: FontWeight.w400,
         color: Color(0xFF6B6B8A),
       ),
-      labelLarge: GoogleFonts.plusJakartaSans(
+      labelLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: Color(0xFF1A1A2E),
       ),
-      labelSmall: GoogleFonts.plusJakartaSans(
+      labelSmall: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
         color: Color(0xFF6B6B8A),
       ),
     ),
-    appBarTheme: AppBarThemeData(
+    appBarTheme: const AppBarThemeData(
       backgroundColor: backgroundLight,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.plusJakartaSans(
+      titleTextStyle: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: Color(0xFF1A1A2E),
@@ -127,7 +136,7 @@ class AppTheme {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
-    inputDecorationTheme: InputDecorationThemeData(
+    inputDecorationTheme: const InputDecorationThemeData(
       filled: false,
       border: UnderlineInputBorder(
         borderSide: BorderSide(color: Color(0xFFD0CDE8), width: 1.5),
@@ -138,12 +147,14 @@ class AppTheme {
       focusedBorder: UnderlineInputBorder(
         borderSide: BorderSide(color: primary, width: 2),
       ),
-      labelStyle: GoogleFonts.plusJakartaSans(
+      labelStyle: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 14,
         fontWeight: FontWeight.w500,
         color: Color(0xFF6B6B8A),
       ),
-      hintStyle: GoogleFonts.plusJakartaSans(
+      hintStyle: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 14,
         fontWeight: FontWeight.w400,
         color: Color(0xFFB0ADCC),
@@ -153,7 +164,7 @@ class AppTheme {
 
   static ThemeData get darkTheme => ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.dark(
+    colorScheme: const ColorScheme.dark(
       primary: primary,
       onPrimary: Colors.white,
       primaryContainer: Color(0xFF3D2B7A),
@@ -170,60 +181,70 @@ class AppTheme {
       outlineVariant: Color(0xFF2A2440),
     ),
     scaffoldBackgroundColor: backgroundDark,
-    textTheme: GoogleFonts.plusJakartaSansTextTheme().copyWith(
-      displayLarge: GoogleFonts.plusJakartaSans(
+    textTheme: const TextTheme(
+      displayLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: Color(0xFFE6E2F5),
       ),
-      headlineLarge: GoogleFonts.plusJakartaSans(
+      headlineLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: Color(0xFFE6E2F5),
       ),
-      headlineMedium: GoogleFonts.plusJakartaSans(
+      headlineMedium: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 22,
         fontWeight: FontWeight.w700,
         color: Color(0xFFE6E2F5),
       ),
-      titleLarge: GoogleFonts.plusJakartaSans(
+      titleLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: Color(0xFFE6E2F5),
       ),
-      titleMedium: GoogleFonts.plusJakartaSans(
+      titleMedium: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: Color(0xFFE6E2F5),
       ),
-      bodyLarge: GoogleFonts.plusJakartaSans(
+      bodyLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: Color(0xFFE6E2F5),
       ),
-      bodyMedium: GoogleFonts.plusJakartaSans(
+      bodyMedium: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: Color(0xFFB0ADCC),
       ),
-      bodySmall: GoogleFonts.plusJakartaSans(
+      bodySmall: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 11,
         fontWeight: FontWeight.w400,
         color: Color(0xFF8A87AA),
       ),
-      labelLarge: GoogleFonts.plusJakartaSans(
+      labelLarge: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: Color(0xFFE6E2F5),
       ),
-      labelSmall: GoogleFonts.plusJakartaSans(
+      labelSmall: TextStyle(
+        fontFamily: 'PlusJakartaSans',
         fontSize: 11,
         fontWeight: FontWeight.w600,
         letterSpacing: 0.2,
         color: Color(0xFF8A87AA),
       ),
     ),
-    appBarTheme: AppBarThemeData(
+    appBarTheme: const AppBarThemeData(
       backgroundColor: backgroundDark,
       elevation: 0,
       scrolledUnderElevation: 0,
