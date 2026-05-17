@@ -371,7 +371,7 @@ class _EditNoteScreenState extends State<EditNoteScreen>
             ),
             const SizedBox(height: 24),
             
-            ImageAttachmentWidget(
+            ImageAttachmentWidget(5
               imagePath: _imagePath,
               onAddImage: _showImageSourceSheet,
               onRemoveImage: () => setState(() => _imagePath = null),
