@@ -1,207 +1,412 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/note.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
-class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._internal();
-  DatabaseHelper._internal();
+import '../../core/app_export.dart';
+import '../../database/database_helper.dart';
+import '../../models/note.dart';
+import './widgets/add_note_form_widget.dart';
+import './widgets/checklist_section_widget.dart';
+import './widgets/image_attachment_widget.dart';
 
-  static const String _notesKey = 'snapnote_notes';
-  static const String _checklistKey = 'snapnote_checklist';
-  static int _nextNoteId = 1;
-  static int _nextChecklistId = 1;
+class AddNoteScreen extends StatefulWidget {
+  const AddNoteScreen({super.key});
 
-  Future<SharedPreferences> get _prefs async => SharedPreferences.getInstance();
+  @override
+  State<AddNoteScreen> createState() => _AddNoteScreenState();
+}
 
-  // ── Notes CRUD ──────────────────────────────────────────────
+class _AddNoteScreenState extends State<AddNoteScreen>
+    with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
+  final _titleCtrl = TextEditingController();
+  final _contentCtrl = TextEditingController();
+  bool _isImportant = false;
+  bool _isSaving = false;
+  String? _imagePath;
+  final List<ChecklistItem> _checklistItems = [];
+  late AnimationController _enterCtrl;
+  late Animation<Offset> _slideAnim;
+  late Animation<double> _fadeAnim;
 
-  Future<int> insertNote(Note note) async {
-    final prefs = await _prefs;
-    final notes = await _loadAllNoteMaps(prefs);
-    final checklist = await _loadAllChecklistMaps(prefs);
-
-    // Determine next note id
-    int noteId = _nextNoteId;
-    if (notes.isNotEmpty) {
-      final maxId = notes
-          .map((m) => (m['id'] as int? ?? 0))
-          .reduce((a, b) => a > b ? a : b);
-      noteId = maxId + 1;
-    }
-    _nextNoteId = noteId + 1;
-
-    final noteMap = note.toMap();
-    noteMap['id'] = noteId;
-    notes.add(noteMap);
-
-    // Determine next checklist id
-    int clId = _nextChecklistId;
-    if (checklist.isNotEmpty) {
-      final maxId = checklist
-          .map((m) => (m['id'] as int? ?? 0))
-          .reduce((a, b) => a > b ? a : b);
-      clId = maxId + 1;
-    }
-
-    for (final item in note.checklistItems) {
-      final itemMap = item.copyWith(noteId: noteId).toMap();
-      itemMap['id'] = clId++;
-      checklist.add(itemMap);
-    }
-    _nextChecklistId = clId;
-
-    await prefs.setString(_notesKey, jsonEncode(notes));
-    await prefs.setString(_checklistKey, jsonEncode(checklist));
-    return noteId;
+  @override
+  void initState() {
+    super.initState();
+    _enterCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOutCubic));
+    _fadeAnim = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut));
+    _enterCtrl.forward();
   }
 
-  Future<List<Note>> getAllNotes() async {
-    final prefs = await _prefs;
-    final noteMaps = await _loadAllNoteMaps(prefs);
-    final checklistMaps = await _loadAllChecklistMaps(prefs);
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _contentCtrl.dispose();
+    _enterCtrl.dispose();
+    super.dispose();
+  }
 
-    // Sort by created_at DESC
-    noteMaps.sort((a, b) {
-      final aDate =
-          DateTime.tryParse(a['created_at'] as String? ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-      final bDate =
-          DateTime.tryParse(b['created_at'] as String? ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0);
-      return bDate.compareTo(aDate);
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 80);
+      
+      if (picked != null && mounted) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${timestamp}_${p.basename(picked.path)}';
+        final savedImage = await File(picked.path).copy('${appDir.path}/$fileName');
+        
+        setState(() => _imagePath = savedImage.path);
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Couldn't access photos. Check app permissions.",
+        backgroundColor: AppTheme.error,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Add Photo',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              if (!kIsWeb)
+                _SheetOption(
+                  icon: Icons.photo_camera_rounded,
+                  label: 'Take Photo',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+              const SizedBox(height: 8),
+              _SheetOption(
+                icon: Icons.photo_library_rounded,
+                label: 'Choose from Library',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _addChecklistItem() {
+    setState(() {
+      _checklistItems.add(ChecklistItem(taskText: '', isDone: false));
     });
-
-    return noteMaps.map((map) {
-      final note = Note.fromMap(map);
-      final items = checklistMaps
-          .where((c) => c['note_id'] == note.id)
-          .map(ChecklistItem.fromMap)
-          .toList();
-      return note.copyWith(checklistItems: items);
-    }).toList();
   }
 
-  Future<Note?> getNoteById(int id) async {
-    final prefs = await _prefs;
-    final noteMaps = await _loadAllNoteMaps(prefs);
-    final checklistMaps = await _loadAllChecklistMaps(prefs);
-
-    final maps = noteMaps.where((m) => m['id'] == id).toList();
-    if (maps.isEmpty) return null;
-    final items = checklistMaps
-        .where((c) => c['note_id'] == id)
-        .map(ChecklistItem.fromMap)
-        .toList();
-    return Note.fromMap(maps.first).copyWith(checklistItems: items);
+  void _removeChecklistItem(int index) {
+    setState(() => _checklistItems.removeAt(index));
   }
 
-  Future<int> updateNote(Note note) async {
-    final prefs = await _prefs;
-    final notes = await _loadAllNoteMaps(prefs);
-    final checklist = await _loadAllChecklistMaps(prefs);
-
-    final idx = notes.indexWhere((m) => m['id'] == note.id);
-    if (idx == -1) return 0;
-
-    final noteMap = note.toMap();
-    noteMap['id'] = note.id;
-    notes[idx] = noteMap;
-
-    // Remove old checklist items for this note
-    checklist.removeWhere((c) => c['note_id'] == note.id);
-
-    // Determine next checklist id
-    int clId = 1;
-    if (checklist.isNotEmpty) {
-      final maxId = checklist
-          .map((m) => (m['id'] as int? ?? 0))
-          .reduce((a, b) => a > b ? a : b);
-      clId = maxId + 1;
-    }
-
-    for (final item in note.checklistItems) {
-      final itemMap = item.copyWith(noteId: note.id).toMap();
-      itemMap['id'] = clId++;
-      checklist.add(itemMap);
-    }
-
-    await prefs.setString(_notesKey, jsonEncode(notes));
-    await prefs.setString(_checklistKey, jsonEncode(checklist));
-    return 1;
+  void _updateChecklistItem(int index, String text) {
+    _checklistItems[index] = _checklistItems[index].copyWith(taskText: text);
   }
 
-  Future<int> deleteNote(int id) async {
-    final prefs = await _prefs;
-    final notes = await _loadAllNoteMaps(prefs);
-    final checklist = await _loadAllChecklistMaps(prefs);
+  Future<void> _saveNote() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
 
-    notes.removeWhere((m) => m['id'] == id);
-    checklist.removeWhere((c) => c['note_id'] == id);
+    final note = Note(
+      title: _titleCtrl.text.trim(),
+      content: _contentCtrl.text.trim(),
+      imagePath: _imagePath,
+      isImportant: _isImportant,
+      createdAt: DateTime.now(),
+      checklistItems: _checklistItems
+          .where((c) => c.taskText.isNotEmpty)
+          .toList(),
+    );
 
-    await prefs.setString(_notesKey, jsonEncode(notes));
-    await prefs.setString(_checklistKey, jsonEncode(checklist));
-    return 1;
-  }
-
-  Future<List<Note>> searchNotes(String query) async {
-    final all = await getAllNotes();
-    final q = query.toLowerCase();
-    return all
-        .where(
-          (n) =>
-              n.title.toLowerCase().contains(q) ||
-              n.content.toLowerCase().contains(q),
-        )
-        .toList();
-  }
-
-  // ── Checklist CRUD ──────────────────────────────────────────
-
-  Future<List<ChecklistItem>> getChecklistItems(int noteId) async {
-    final prefs = await _prefs;
-    final checklistMaps = await _loadAllChecklistMaps(prefs);
-    return checklistMaps
-        .where((c) => c['note_id'] == noteId)
-        .map(ChecklistItem.fromMap)
-        .toList();
-  }
-
-  Future<int> updateChecklistItem(ChecklistItem item) async {
-    final prefs = await _prefs;
-    final checklist = await _loadAllChecklistMaps(prefs);
-
-    final idx = checklist.indexWhere((c) => c['id'] == item.id);
-    if (idx == -1) return 0;
-    checklist[idx] = item.toMap();
-    await prefs.setString(_checklistKey, jsonEncode(checklist));
-    return 1;
-  }
-
-  // ── Private helpers ─────────────────────────────────────────
-
-  Future<List<Map<String, dynamic>>> _loadAllNoteMaps(
-    SharedPreferences prefs,
-  ) async {
-    final raw = prefs.getString(_notesKey);
-    if (raw == null || raw.isEmpty) return [];
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.cast<Map<String, dynamic>>();
-    } catch (_) {
-      return [];
+      await DatabaseHelper.instance.insertNote(note);
+      if (mounted) {
+        Fluttertoast.showToast(
+          msg: 'Note saved!',
+          backgroundColor: AppTheme.success,
+          textColor: Colors.white,
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Couldn't save note. Please try again.",
+        backgroundColor: AppTheme.error,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadAllChecklistMaps(
-    SharedPreferences prefs,
-  ) async {
-    final raw = prefs.getString(_checklistKey);
-    if (raw == null || raw.isEmpty) return [];
-    try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.cast<Map<String, dynamic>>();
-    } catch (_) {
-      return [];
-    }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isTablet = MediaQuery.of(context).size.width >= 600;
+
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundLight,
+      appBar: AppBar(
+        backgroundColor: AppTheme.backgroundLight,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(18),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: CustomIconWidget(
+              iconName: 'arrow_back',
+              color: theme.colorScheme.onSurface,
+              size: 18,
+            ),
+          ),
+        ),
+        title: Text(
+          'New Note',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        actions: [
+          GestureDetector(
+            onTap: () => setState(() => _isImportant = !_isImportant),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _isImportant
+                    ? AppTheme.accentOrange.withAlpha(31)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(40),
+                border: Border.all(
+                  color: _isImportant
+                      ? AppTheme.accentOrange
+                      : Colors.transparent,
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  if (!_isImportant)
+                    BoxShadow(
+                      color: Colors.black.withAlpha(15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _isImportant
+                        ? Icons.push_pin_rounded
+                        : Icons.push_pin_outlined,
+                    size: 16,
+                    color: _isImportant
+                        ? AppTheme.accentOrange
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Pin',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: _isImportant
+                          ? AppTheme.accentOrange
+                          : theme.colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SlideTransition(
+          position: _slideAnim,
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: isTablet
+                ? Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: _buildFormBody(theme),
+                    ),
+                  )
+                : _buildFormBody(theme),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormBody(ThemeData theme) {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AddNoteFormWidget(
+              titleController: _titleCtrl,
+              contentController: _contentCtrl,
+            ),
+            const SizedBox(height: 24),
+            ImageAttachmentWidget(
+              imagePath: _imagePath,
+              onAddImage: _showImageSourceSheet,
+              onRemoveImage: () => setState(() => _imagePath = null),
+            ),
+            const SizedBox(height: 24),
+            ChecklistSectionWidget(
+              items: _checklistItems,
+              onAddItem: _addChecklistItem,
+              onRemoveItem: _removeChecklistItem,
+              onUpdateItem: _updateChecklistItem,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _isSaving
+                    ? Container(
+                        key: const ValueKey('loading'),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      )
+                    : FilledButton.icon(
+                        key: const ValueKey('save'),
+                        onPressed: _saveNote,
+                        icon: const Icon(Icons.check_rounded, size: 20),
+                        label: const Text('Save Note'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          textStyle: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _SheetOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariantLight,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppTheme.primary, size: 22),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

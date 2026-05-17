@@ -83,9 +83,9 @@ class _EditNoteScreenState extends State<EditNoteScreen>
       final picked = await picker.pickImage(source: source, imageQuality: 80);
       
       if (picked != null && mounted) {
-        // --- CRITICAL FIX: Save to persistent storage ---
         final appDir = await getApplicationDocumentsDirectory();
-        final fileName = p.basename(picked.path);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${timestamp}_${p.basename(picked.path)}';
         final savedImage = await File(picked.path).copy('${appDir.path}/$fileName');
         
         setState(() => _imagePath = savedImage.path);
