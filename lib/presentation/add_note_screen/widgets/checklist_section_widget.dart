@@ -1,4 +1,4 @@
-
+import 'package:flutter/material.dart';
 import '../../../core/app_export.dart';
 import '../../../models/note.dart';
 
@@ -24,13 +24,37 @@ class _ChecklistSectionWidgetState extends State<ChecklistSectionWidget> {
   final List<TextEditingController> _controllers = [];
 
   @override
+  void initState() {
+    super.initState();
+    _syncControllers();
+  }
+
+  @override
   void didUpdateWidget(covariant ChecklistSectionWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncControllers();
+  }
+
+  // --- CRITICAL FIX: Properly sync controllers with the list model ---
+  void _syncControllers() {
+    // Add missing controllers
     while (_controllers.length < widget.items.length) {
       _controllers.add(TextEditingController());
     }
+    // Remove extra controllers
     while (_controllers.length > widget.items.length) {
       _controllers.removeLast().dispose();
+    }
+    
+    // Sync text to prevent mismatch when items are loaded or deleted
+    for (int i = 0; i < widget.items.length; i++) {
+      final targetText = widget.items[i].taskText;
+      if (_controllers[i].text != targetText) {
+        _controllers[i].value = TextEditingValue(
+          text: targetText,
+          selection: TextSelection.collapsed(offset: targetText.length),
+        );
+      }
     }
   }
 
@@ -45,10 +69,6 @@ class _ChecklistSectionWidgetState extends State<ChecklistSectionWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    while (_controllers.length < widget.items.length) {
-      _controllers.add(TextEditingController());
-    }
 
     return Container(
       padding: const EdgeInsets.all(20),

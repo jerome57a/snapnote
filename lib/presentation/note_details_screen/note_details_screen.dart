@@ -86,8 +86,12 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
     final minute = dt.minute.toString().padLeft(2, '0');
     final period = hour >= 12 ? 'PM' : 'AM';
     final h = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-    final endHour = (hour + 1) > 12 ? (hour + 1) - 12 : (hour + 1);
-    final endPeriod = (hour + 1) >= 12 ? 'PM' : 'AM';
+    
+    // --- CRITICAL FIX: Handle midnight crossover correctly ---
+    final nextHourRaw = (hour + 1) % 24;
+    final endHour = nextHourRaw > 12 ? nextHourRaw - 12 : (nextHourRaw == 0 ? 12 : nextHourRaw);
+    final endPeriod = nextHourRaw >= 12 ? 'PM' : 'AM';
+    
     return '$h:$minute $period - $endHour:$minute $endPeriod';
   }
 
@@ -270,7 +274,7 @@ class _NoteDetailsScreenState extends State<NoteDetailsScreen>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: CustomImageWidget(
-                            imageUrl: note.imagePath, // FIXED HERE
+                            imageUrl: note.imagePath,
                             width: double.infinity,
                             height: 180,
                             fit: BoxFit.cover,
