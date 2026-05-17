@@ -1,4 +1,3 @@
-
 import '../../../core/app_export.dart';
 
 // ANATOMY LOCKED: overlapping CircleAvatars + dark "+N" circle badge
@@ -27,7 +26,9 @@ class AttendeesRowWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalWidth = (_attendees.length * 28.0) + 40.0;
+    // --- CRITICAL FIX: Changed + 40.0 to + 44.0 to prevent badge clipping ---
+    final totalWidth = (_attendees.length * 28.0) + 44.0;
+    
     return SizedBox(
       height: 44,
       width: totalWidth,
